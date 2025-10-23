@@ -25,36 +25,58 @@ class AOSGym(gym.Env):
         self._prev_best = None
         self._stag = 0
 
+        # Tham số DE “mạnh tay” cho CEC
+        self.de_params = DEParams(F=0.8, CR=0.9, p=0.05, sigma=0.03)
+
     def reset(self, seed=None, options=None):
+        
         if seed is not None:
             self._rng = np.random.default_rng(seed)
         self.fe = 0
         self.pop = self._rng.uniform(self.lb, self.ub, size=(self.pop_size, self.dim))
-        self.fit = self._eval_pop(self.pop)                    # <<< dùng wrapper batch-safe
+        self.fit = self._eval_pop(self.pop)                    # batch-safe
         self.fe += self.pop_size
         self._prev_best = float(self.fit.min())
         self._stag = 0
+        self._last_info = None
+
         return self._get_state(), {}
 
     def step(self, action):
-        # chuẩn hoá action → phân bố xác suất
-        p = np.clip(np.asarray(action, dtype=np.float32).ravel(), 1e-8, 1.0)
+        # --- chuẩn hoá action → phân bố xác suất (có bảo vệ) ---
+        p = np.asarray(action, dtype=np.float32).ravel()
+        if not np.all(np.isfinite(p)) or p.sum() <= 0.0:
+            p = np.ones(self.num_ops, dtype=np.float32) / self.num_ops
+        p = np.clip(p, 1e-8, 1.0)
         p = p / p.sum()
-        op_ids = self._rng.choice(self.num_ops, size=self.pop_size, p=p)
 
-        # áp dụng operator theo từng cá thể (vector hoá vừa đủ)
+        # chọn operator cho từng cá thể
+        op_ids = self._rng.choice(self.num_ops, size=self.pop_size, p=p)
+        op_hist = np.bincount(op_ids, minlength=self.num_ops) / self.pop_size  # để log
+
+        # áp dụng operator theo từng cá thể
         new_pop = self._apply_ops(self.pop, op_ids)
-        new_fit = self._eval_pop(new_pop)                      # <<< dùng wrapper batch-safe
+        # đảm bảo trong biên trước khi đánh giá
+        new_pop = np.clip(new_pop, self.lb, self.ub)
+        new_fit = self._eval_pop(new_pop)
         self.fe += self.pop_size
 
+        # thay thế nếu cải thiện
         improved = new_fit < self.fit
-        self.pop[improved] = new_pop[improved]
-        self.fit[improved] = new_fit[improved]
+        if np.any(improved):
+            self.pop[improved] = new_pop[improved]
+            self.fit[improved] = new_fit[improved]
 
         reward = float(self._calculate_reward())               # hybrid + stagnation-aware
         terminated = self.fe >= self.fe_budget
         truncated = False
-        info = {"fe": self.fe, "best": float(self.fit.min())}
+        info = {
+            "fe": self.fe,
+            "best": float(self.fit.min()),
+            "op_hist": op_hist.astype(float),
+            "p": p.astype(float),              # <-- thêm dòng này
+        }
+        self._last_info = info
         return self._get_state(), reward, terminated, truncated, info
 
     # ---------- helper: đánh giá fobj an toàn cho cả batch (N,D)->(N,) và per-row (D,)->scalar ----------
@@ -79,19 +101,32 @@ class AOSGym(gym.Env):
         return np.concatenate([X, ranks[:, None]], axis=1)
 
     def _apply_ops(self, pop, op_ids):
-        params = DEParams(F=0.5, CR=0.9, p=0.2, sigma=0.10)
-        return apply_de_ops(pop, self.fit, op_ids, self._rng, self.lb, self.ub, params)
+        return apply_de_ops(pop, self.fit, op_ids, self._rng, self.lb, self.ub, self.de_params)
 
-    # Reward hybrid + stagnation penalty
-    def _calculate_reward(self, w1=0.95, w2=0.05, eps_improve=1e-12, k_stag=15, penalty=0.03):
+    # ---------- Anti-stagnation: đá % cá thể tệ nhất khi kẹt quá lâu ----------
+    def _anti_stagnation(self, frac: float = 0.15):
+        m = max(1, int(frac * self.pop_size))
+        worst_idx = np.argsort(self.fit)[-m:]
+        self.pop[worst_idx] = self._rng.uniform(self.lb, self.ub, size=(m, self.dim))
+        self.fit[worst_idx] = self._eval_pop(self.pop[worst_idx])
+        self.fe += m  # đếm FE do vừa đánh giá lại
+
+    # Reward hybrid + stagnation penalty (log-scale improvement + anti-stagnation)
+    def _calculate_reward(self, w1=0.9, w2=0.1, eps_improve=1e-12, k_stag=10, penalty=0.03):
         best = float(self.fit.min())
-        delta = (self._prev_best - best) / (abs(self._prev_best) + 1e-9)
+
+        # log1p để khử bias/thang đo lớn của CEC
+        delta = np.log1p(self._prev_best) - np.log1p(best)   # >0 nếu best mới tốt hơn
+
         improved = (self._prev_best - best) > eps_improve
         self._prev_best = best
 
+        # stagnation + đá worst mỗi k_stag bước không cải thiện
         self._stag = 0 if improved else self._stag + 1
-        stagnation_pen = penalty if self._stag >= k_stag else 0.0
+        if self._stag > 0 and (self._stag % k_stag == 0):
+            self._anti_stagnation(frac=0.15)
 
+        stagnation_pen = penalty if self._stag >= k_stag else 0.0
         diversity = np.std(self.pop, axis=0).mean() / self.range
         r = w1 * delta + w2 * diversity - stagnation_pen
         return float(np.clip(r, -1.0, 1.0))

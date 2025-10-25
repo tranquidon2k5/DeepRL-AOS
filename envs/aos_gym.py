@@ -43,40 +43,47 @@ class AOSGym(gym.Env):
         return self._get_state(), {}
 
     def step(self, action):
-        # --- chuẩn hoá action → phân bố xác suất (có bảo vệ) ---
-        p = np.asarray(action, dtype=np.float32).ravel()
-        if not np.all(np.isfinite(p)) or p.sum() <= 0.0:
-            p = np.ones(self.num_ops, dtype=np.float32) / self.num_ops
-        p = np.clip(p, 1e-8, 1.0)
+        # chuẩn hoá action → phân bố xác suất
+        p = np.clip(np.asarray(action, dtype=np.float32).ravel(), 1e-8, 1.0)
         p = p / p.sum()
-
-        # chọn operator cho từng cá thể
         op_ids = self._rng.choice(self.num_ops, size=self.pop_size, p=p)
-        op_hist = np.bincount(op_ids, minlength=self.num_ops) / self.pop_size  # để log
 
         # áp dụng operator theo từng cá thể
         new_pop = self._apply_ops(self.pop, op_ids)
-        # đảm bảo trong biên trước khi đánh giá
-        new_pop = np.clip(new_pop, self.lb, self.ub)
         new_fit = self._eval_pop(new_pop)
         self.fe += self.pop_size
 
-        # thay thế nếu cải thiện
         improved = new_fit < self.fit
-        if np.any(improved):
-            self.pop[improved] = new_pop[improved]
-            self.fit[improved] = new_fit[improved]
+        self.pop[improved] = new_pop[improved]
+        self.fit[improved] = new_fit[improved]
 
-        reward = float(self._calculate_reward())               # hybrid + stagnation-aware
+        # ====== NEW: thống kê theo operator ======
+        # tần suất mỗi op trong population step này
+        op_hist = np.bincount(op_ids, minlength=self.num_ops).astype(np.float32) / float(self.pop_size)
+
+        # tỉ lệ cải thiện theo từng op (improved / dùng)
+        op_improve_rate = np.zeros(self.num_ops, dtype=np.float32)
+        for k in range(self.num_ops):
+            mk = (op_ids == k)
+            if mk.any():
+                op_improve_rate[k] = improved[mk].mean()
+
+        reward = float(self._calculate_reward())
         terminated = self.fe >= self.fe_budget
         truncated = False
+
         info = {
             "fe": self.fe,
             "best": float(self.fit.min()),
-            "op_hist": op_hist.astype(float),
-            "p": p.astype(float),              # <-- thêm dòng này
+            # ====== NEW: đính kèm thống kê ======
+            "p_used": p.copy(),
+            "op_hist": op_hist,
+            "op_improve_rate": op_improve_rate,
         }
+
+        # ====== NEW: lưu lại để script có thể đọc không cần step thêm ======
         self._last_info = info
+
         return self._get_state(), reward, terminated, truncated, info
 
     # ---------- helper: đánh giá fobj an toàn cho cả batch (N,D)->(N,) và per-row (D,)->scalar ----------

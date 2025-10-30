@@ -1,0 +1,18 @@
+import numpy as np
+from envs.aos_gym import AOSGym
+
+def sphere(x): return float(np.sum(x**2))
+
+env = AOSGym(sphere, dim=10, pop_size=40, fe_budget=4000)
+obs, _ = env.reset(seed=123)
+
+improvements = []
+for t in range(100):
+    # ưu tiên dùng DE operators nhiều hơn mutation khám phá
+    action = np.array([0.34, 0.33, 0.29, 0.04], dtype=np.float32)  # sum = 1
+    obs, r, done, _, info = env.step(action)
+    improvements.append(r)
+    if done: break
+
+print("steps:", len(improvements), "last_best:", info["best"])
+print("[PASS] op_smoketest")

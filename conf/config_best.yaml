@@ -1,0 +1,40 @@
+# config_best.yaml
+# Bộ tham số "vàng" (golden parameters) từ run 'worldly-sweep-36'
+
+# --- Tham số Môi trường & Chạy (Lớp 6) ---
+updates: 120          # (Bạn nên tăng lên, ví dụ 200, cho lần chạy chính thức)
+function_id: 1         # (Đây sẽ bị ghi đè bởi dòng lệnh)
+dim: 10
+pop_size: 50
+seed: 1             # (Đây sẽ bị ghi đè bởi dòng lệnh)
+
+# --- Tham số PPO Core (Lớp 1) ---
+lr: 0.0003319552918079498
+clip_coef: 0.09915977651472148
+ent_coef: 0.00042243340666920466
+gamma: 0.972299944846982
+gae_lambda: 0.9282540944148324
+
+# --- Tham số Reward (Lớp 2) ---
+w1: 0.698854374574848
+# w2 sẽ được tự động tính là (1.0 - w1)
+
+# --- Tham số Dirichlet (Lớp 3) ---
+# (Các tham số này không được tune trong run 'worldly-sweep-36')
+alpha_hi: 8.0
+alpha_lo: 4.0
+sharp_hi: 2.5
+sharp_lo: 1.0
+
+# --- Tham số Alpha Bonus (Lớp 4) ---
+# (Các tham số này không được tune trong run 'worldly-sweep-36')
+ema_beta: 0.2
+kappa: 0.8
+eps_bonus: 0.02
+
+# --- Tham số DE Operators (Lớp 5) ---
+# (Các tham số này không được tune trong run 'worldly-sweep-36')
+de_F: 0.5
+de_CR: 0.9
+de_p: 0.1
+de_sigma: 0.05

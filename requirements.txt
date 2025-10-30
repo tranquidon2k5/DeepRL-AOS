@@ -1,0 +1,7 @@
+numpy
+torch
+gymnasium
+cec2017 @ git+https://github.com/tilleyd/cec2017-py.git
+matplotlib
+wandb
+PyYAML

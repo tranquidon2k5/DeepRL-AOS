@@ -1,0 +1,14 @@
+env:
+  dim: 10
+  pop_size: 30
+  fe_budget_per_ind: 40
+  bounds: [-100, 100]
+rl:
+  algo: ppo-mixture
+  steps_per_update: 512
+  updates: 120
+  lr: 2e-4
+  clip_coef: 0.1
+  ent_coef: 0.0
+  dirichlet_tau: 0.15
+  dirichlet_eps: 0.01

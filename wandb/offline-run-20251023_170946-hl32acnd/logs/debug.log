@@ -1,0 +1,25 @@
+2025-10-23 17:09:46,192 INFO    MainThread:9456 [wandb_setup.py:_flush():81] Current SDK version is 0.22.2
+2025-10-23 17:09:46,192 INFO    MainThread:9456 [wandb_setup.py:_flush():81] Configure stats pid to 9456
+2025-10-23 17:09:46,192 INFO    MainThread:9456 [wandb_setup.py:_flush():81] Loading settings from C:\Users\This PC\.config\wandb\settings
+2025-10-23 17:09:46,192 INFO    MainThread:9456 [wandb_setup.py:_flush():81] Loading settings from D:\cursor project\DRL-AOS\wandb\settings
+2025-10-23 17:09:46,192 INFO    MainThread:9456 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2025-10-23 17:09:46,193 INFO    MainThread:9456 [wandb_init.py:setup_run_log_directory():705] Logging user logs to D:\cursor project\DRL-AOS\wandb\offline-run-20251023_170946-hl32acnd\logs\debug.log
+2025-10-23 17:09:46,193 INFO    MainThread:9456 [wandb_init.py:setup_run_log_directory():706] Logging internal logs to D:\cursor project\DRL-AOS\wandb\offline-run-20251023_170946-hl32acnd\logs\debug-internal.log
+2025-10-23 17:09:46,193 INFO    MainThread:9456 [wandb_init.py:init():832] calling init triggers
+2025-10-23 17:09:46,193 INFO    MainThread:9456 [wandb_init.py:init():837] wandb.init called with sweep_config: {}
+config: {'_wandb': {}}
+2025-10-23 17:09:46,193 INFO    MainThread:9456 [wandb_init.py:init():880] starting backend
+2025-10-23 17:09:48,520 INFO    MainThread:9456 [wandb_init.py:init():883] sending inform_init request
+2025-10-23 17:09:48,553 INFO    MainThread:9456 [wandb_init.py:init():891] backend started and connected
+2025-10-23 17:09:48,554 INFO    MainThread:9456 [wandb_init.py:init():961] updated telemetry
+2025-10-23 17:09:48,585 INFO    MainThread:9456 [wandb_init.py:init():985] communicating run to backend with 90.0 second timeout
+2025-10-23 17:09:48,922 INFO    MainThread:9456 [wandb_init.py:init():1036] starting run threads in backend
+2025-10-23 17:09:49,129 INFO    MainThread:9456 [wandb_run.py:_console_start():2509] atexit reg
+2025-10-23 17:09:49,129 INFO    MainThread:9456 [wandb_run.py:_redirect():2357] redirect: wrap_raw
+2025-10-23 17:09:49,129 INFO    MainThread:9456 [wandb_run.py:_redirect():2426] Wrapping output streams.
+2025-10-23 17:09:49,129 INFO    MainThread:9456 [wandb_run.py:_redirect():2449] Redirects installed.
+2025-10-23 17:09:49,136 INFO    MainThread:9456 [wandb_init.py:init():1076] run started, returning control to user process
+2025-10-23 17:09:49,403 INFO    MainThread:9456 [wandb_run.py:_finish():2275] finishing run DeepRL-AOS/hl32acnd
+2025-10-23 17:09:49,403 INFO    MainThread:9456 [wandb_run.py:_atexit_cleanup():2474] got exitcode: 0
+2025-10-23 17:09:49,403 INFO    MainThread:9456 [wandb_run.py:_restore():2456] restore
+2025-10-23 17:09:49,403 INFO    MainThread:9456 [wandb_run.py:_restore():2462] restore done
